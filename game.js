@@ -975,54 +975,78 @@ class NeonHighwayGame3D {
       if (e.code === 'KeyD' || e.code === 'ArrowRight') this.keys.right = false;
     });
 
-    // Touch Buttons
+    // Global Touch Key Release Helper (prevents stuck keys during interruptions)
+    this.releaseAllTouchKeys = () => {
+      this.keys.up = false;
+      this.keys.down = false;
+      this.keys.left = false;
+      this.keys.right = false;
+      ['touchLeft', 'touchRight', 'touchGas', 'touchBrake'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.remove('pressed');
+      });
+    };
+
+    window.addEventListener('blur', () => this.releaseAllTouchKeys());
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) this.releaseAllTouchKeys();
+    });
+
+    // High-performance, zero-latency touch button bindings with Pointer Capture
     const bindTouchBtn = (id, keyName) => {
       const btn = document.getElementById(id);
       if (!btn) return;
-      btn.addEventListener('touchstart', (e) => {
+
+      const press = (e) => {
         this.keys[keyName] = true;
-        e.preventDefault();
-      }, { passive: false });
-      btn.addEventListener('touchend', (e) => {
+        btn.classList.add('pressed');
+        if (e && e.cancelable) e.preventDefault();
+      };
+
+      const release = (e) => {
         this.keys[keyName] = false;
-        e.preventDefault();
-      }, { passive: false });
-      btn.addEventListener('touchcancel', (e) => {
-        this.keys[keyName] = false;
+        btn.classList.remove('pressed');
+        if (e && e.cancelable) e.preventDefault();
+      };
+
+      // Pointer events with pointer capture for modern browsers & multi-touch
+      btn.addEventListener('pointerdown', (e) => {
+        press(e);
+        try {
+          btn.setPointerCapture(e.pointerId);
+        } catch (_) {}
       });
+
+      btn.addEventListener('pointerup', (e) => {
+        release(e);
+        try {
+          btn.releasePointerCapture(e.pointerId);
+        } catch (_) {}
+      });
+
+      btn.addEventListener('pointercancel', (e) => {
+        release(e);
+        try {
+          btn.releasePointerCapture(e.pointerId);
+        } catch (_) {}
+      });
+
+      btn.addEventListener('pointerleave', (e) => {
+        if (!btn.hasPointerCapture || !btn.hasPointerCapture(e.pointerId)) {
+          release(e);
+        }
+      });
+
+      // Touch events layer for mobile WebKit & standard touch devices
+      btn.addEventListener('touchstart', press, { passive: false });
+      btn.addEventListener('touchend', release, { passive: false });
+      btn.addEventListener('touchcancel', release, { passive: false });
     };
 
     bindTouchBtn('touchLeft', 'left');
     bindTouchBtn('touchRight', 'right');
     bindTouchBtn('touchGas', 'up');
     bindTouchBtn('touchBrake', 'down');
-
-    // Touch Swipe Zone Steering
-    const swipeZone = document.getElementById('touchSwipeZone');
-    if (swipeZone) {
-      swipeZone.addEventListener('touchstart', (e) => {
-        this.touchSteerActive = true;
-        this.touchStartX = e.touches[0].clientX;
-        e.preventDefault();
-      }, { passive: false });
-
-      swipeZone.addEventListener('touchmove', (e) => {
-        if (!this.touchSteerActive) return;
-        const currentX = e.touches[0].clientX;
-        const diffX = currentX - this.touchStartX;
-        this.keys.left = diffX < -15;
-        this.keys.right = diffX > 15;
-        e.preventDefault();
-      }, { passive: false });
-
-      const endSwipe = () => {
-        this.touchSteerActive = false;
-        this.keys.left = false;
-        this.keys.right = false;
-      };
-      swipeZone.addEventListener('touchend', endSwipe);
-      swipeZone.addEventListener('touchcancel', endSwipe);
-    }
   }
 
   bindUI() {
@@ -1493,6 +1517,7 @@ class NeonHighwayGame3D {
   pauseGame() {
     if (this.state !== this.STATE_PLAYING) return;
     this.state = this.STATE_PAUSED;
+    if (this.releaseAllTouchKeys) this.releaseAllTouchKeys();
     this.audio.stopEngine();
     this.audio.stopMusic();
     this.ui.pauseScreen.classList.remove('hidden');
@@ -1501,6 +1526,7 @@ class NeonHighwayGame3D {
   resumeGame() {
     if (this.state !== this.STATE_PAUSED) return;
     this.state = this.STATE_PLAYING;
+    if (this.releaseAllTouchKeys) this.releaseAllTouchKeys();
     this.audio.startEngine();
     this.audio.startMusic();
     this.ui.pauseScreen.classList.add('hidden');
@@ -1509,6 +1535,7 @@ class NeonHighwayGame3D {
 
   returnToLobby() {
     this.state = this.STATE_LOBBY;
+    if (this.releaseAllTouchKeys) this.releaseAllTouchKeys();
     this.audio.stopEngine();
     this.audio.stopMusic();
 

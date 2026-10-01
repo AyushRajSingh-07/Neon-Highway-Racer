@@ -1517,84 +1517,146 @@ body.fullscreen-active .fullscreen-toggle-btn,
 /* ==========================================================================
    MOBILE TOUCH CONTROLS
    ========================================================================== */
+/* ==========================================================================
+   MOBILE TOUCH CONTROLS (Ergonomic Dual-Thumb Controls)
+   ========================================================================== */
 #touch-controls {
   position: absolute;
-  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  bottom: calc(14px + env(safe-area-inset-bottom, 0px));
   left: 0;
   width: 100%;
   display: flex;
   justify-content: space-between;
-  padding: 0 calc(20px + env(safe-area-inset-right, 0px)) 0 calc(20px + env(safe-area-inset-left, 0px));
+  align-items: flex-end;
+  padding: 0 calc(22px + env(safe-area-inset-right, 0px)) 0 calc(22px + env(safe-area-inset-left, 0px));
   pointer-events: none;
-  z-index: 10;
-  transition: opacity 0.3s ease;
-}
-
-.touch-swipe-zone {
-  position: absolute;
-  top: -240px;
-  left: 0;
-  width: 50%;
-  height: 320px;
-  pointer-events: auto;
-  touch-action: none;
+  z-index: 15;
+  transition: opacity 0.25s ease;
 }
 
 .touch-cluster {
   display: flex;
-  gap: 10px;
+  align-items: center;
+  gap: 16px;
   pointer-events: auto;
   flex-shrink: 0;
   z-index: 2;
 }
 
+.touch-cluster-left {
+  justify-content: flex-start;
+}
+
+.touch-cluster-right {
+  justify-content: flex-end;
+}
+
 .touch-btn {
-  width: 62px;
-  height: 62px;
+  width: 66px;
+  height: 66px;
+  min-width: 58px;
+  min-height: 58px;
   border-radius: 50%;
-  background: rgba(12, 0, 30, 0.7);
-  border: 2px solid rgba(0, 240, 255, 0.45);
-  box-shadow: 0 0 15px rgba(0, 240, 255, 0.2), inset 0 0 10px rgba(0, 240, 255, 0.1);
+  background: radial-gradient(circle, rgba(0, 240, 255, 0.16) 0%, rgba(12, 1, 32, 0.76) 100%);
+  border: 2.5px solid rgba(0, 240, 255, 0.65);
+  box-shadow: 0 0 18px rgba(0, 240, 255, 0.25), inset 0 0 14px rgba(0, 240, 255, 0.14);
   color: #00f0ff;
-  font-family: 'Orbitron', monospace;
-  font-weight: 900;
-  font-size: 18px;
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
   cursor: pointer;
   touch-action: none;
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-  transition: transform 0.1s, background 0.1s;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  transition: transform 0.1s cubic-bezier(0.1, 0.9, 0.2, 1), background 0.1s ease, box-shadow 0.1s ease, border-color 0.1s ease;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.touch-btn:active {
-  background: rgba(0, 240, 255, 0.35);
+.touch-icon {
+  font-size: 22px;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.touch-label {
+  font-family: 'Orbitron', monospace;
+  font-size: 8.5px;
+  font-weight: 900;
+  letter-spacing: 1px;
+  margin-top: 2px;
+  pointer-events: none;
+}
+
+/* Steering Buttons (Cyan Neon) */
+.touch-btn.steer:active,
+.touch-btn.steer.pressed {
+  background: radial-gradient(circle, rgba(0, 240, 255, 0.45) 0%, rgba(10, 2, 28, 0.92) 100%);
   border-color: #00f0ff;
+  box-shadow: 0 0 26px rgba(0, 240, 255, 0.65), inset 0 0 16px rgba(0, 240, 255, 0.35);
   transform: scale(0.92);
 }
 
+/* Gas / Boost Button (Emerald Green Neon) */
 .touch-btn.gas {
-  background: rgba(0, 40, 30, 0.75);
-  border-color: rgba(0, 255, 136, 0.5);
+  width: 70px;
+  height: 70px;
+  background: radial-gradient(circle, rgba(0, 255, 136, 0.2) 0%, rgba(2, 26, 18, 0.78) 100%);
+  border-color: rgba(0, 255, 136, 0.7);
+  box-shadow: 0 0 20px rgba(0, 255, 136, 0.3), inset 0 0 14px rgba(0, 255, 136, 0.18);
   color: #00ff88;
-  font-size: 12px;
-  width: 66px;
-  height: 66px;
 }
 
+.touch-btn.gas .touch-icon {
+  font-size: 19px;
+  color: #00ff88;
+}
+
+.touch-btn.gas .touch-label {
+  color: #afffe0;
+  font-size: 9px;
+}
+
+.touch-btn.gas:active,
+.touch-btn.gas.pressed {
+  background: radial-gradient(circle, rgba(0, 255, 136, 0.52) 0%, rgba(2, 38, 22, 0.94) 100%);
+  border-color: #00ff88;
+  box-shadow: 0 0 32px rgba(0, 255, 136, 0.8), inset 0 0 20px rgba(0, 255, 136, 0.45);
+  transform: scale(0.92);
+}
+
+/* Brake / Slow Button (Crimson Pink Neon) */
 .touch-btn.brake {
-  background: rgba(45, 0, 20, 0.75);
-  border-color: rgba(255, 0, 85, 0.5);
+  width: 62px;
+  height: 62px;
+  background: radial-gradient(circle, rgba(255, 0, 85, 0.2) 0%, rgba(36, 2, 16, 0.78) 100%);
+  border-color: rgba(255, 0, 85, 0.7);
+  box-shadow: 0 0 18px rgba(255, 0, 85, 0.25), inset 0 0 12px rgba(255, 0, 85, 0.16);
   color: #ff0055;
-  font-size: 11px;
-  width: 58px;
-  height: 58px;
 }
 
-/* Hide touch controls on desktop with fine mouse */
-@media (min-width: 901px) and (hover: hover) and (pointer: fine) {
+.touch-btn.brake .touch-icon {
+  font-size: 17px;
+  color: #ff0055;
+}
+
+.touch-btn.brake .touch-label {
+  color: #ffa0be;
+  font-size: 8.5px;
+}
+
+.touch-btn.brake:active,
+.touch-btn.brake.pressed {
+  background: radial-gradient(circle, rgba(255, 0, 85, 0.5) 0%, rgba(48, 2, 20, 0.94) 100%);
+  border-color: #ff0055;
+  box-shadow: 0 0 28px rgba(255, 0, 85, 0.75), inset 0 0 18px rgba(255, 0, 85, 0.4);
+  transform: scale(0.92);
+}
+
+/* Hide touch controls on desktop with fine mouse pointer when tall screen */
+@media (min-width: 901px) and (hover: hover) and (pointer: fine) and (min-height: 551px) {
   #touch-controls {
     display: none;
   }
@@ -1986,6 +2048,27 @@ body.fullscreen-active .fullscreen-toggle-btn,
     font-size: 14px;
     padding: 10px 14px;
   }
+  #touch-controls {
+    bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+    padding: 0 calc(12px + env(safe-area-inset-right, 0px)) 0 calc(12px + env(safe-area-inset-left, 0px));
+  }
+  .touch-cluster {
+    gap: 12px;
+  }
+  .touch-btn {
+    width: 64px;
+    height: 64px;
+    min-width: 56px;
+    min-height: 56px;
+  }
+  .touch-btn.gas {
+    width: 68px;
+    height: 68px;
+  }
+  .touch-btn.brake {
+    width: 62px;
+    height: 62px;
+  }
 }
 
 /* ==========================================================================
@@ -2044,26 +2127,43 @@ body.fullscreen-active .fullscreen-toggle-btn,
     font-size: 12px;
   }
   #touch-controls {
-    bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+    bottom: calc(10px + env(safe-area-inset-bottom, 0px));
     padding: 0 calc(20px + env(safe-area-inset-right, 0px)) 0 calc(20px + env(safe-area-inset-left, 0px));
   }
   .touch-cluster {
-    gap: 8px;
+    gap: 16px;
   }
   .touch-btn {
-    width: 48px;
-    height: 48px;
-    font-size: 14px;
+    width: 64px;
+    height: 64px;
+    min-width: 58px;
+    min-height: 58px;
+  }
+  .touch-btn .touch-icon {
+    font-size: 21px;
+  }
+  .touch-btn .touch-label {
+    font-size: 8px;
   }
   .touch-btn.gas {
-    width: 52px;
-    height: 52px;
-    font-size: 11px;
+    width: 68px;
+    height: 68px;
+  }
+  .touch-btn.gas .touch-icon {
+    font-size: 19px;
+  }
+  .touch-btn.gas .touch-label {
+    font-size: 8.5px;
   }
   .touch-btn.brake {
-    width: 46px;
-    height: 46px;
-    font-size: 10px;
+    width: 62px;
+    height: 62px;
+  }
+  .touch-btn.brake .touch-icon {
+    font-size: 17px;
+  }
+  .touch-btn.brake .touch-label {
+    font-size: 8px;
   }
   .levels-grid {
     grid-template-columns: repeat(4, 1fr);

@@ -71,17 +71,28 @@
 
     <!-- On-Screen Touch Controls (Mobile Friendly during run) -->
     <div id="touch-controls" class="hidden">
-      <div id="touchSwipeZone" class="touch-swipe-zone"></div>
-      <!-- Left Hand: Steering -->
-      <div class="touch-cluster">
-        <button id="touchLeft" class="touch-btn" aria-label="Steer Left">◀</button>
-        <button id="touchRight" class="touch-btn" aria-label="Steer Right">▶</button>
+      <!-- Left Hand: Steering Cluster -->
+      <div class="touch-cluster touch-cluster-left">
+        <button id="touchLeft" class="touch-btn steer" aria-label="Steer Left">
+          <span class="touch-icon">◀</span>
+          <span class="touch-label">LEFT</span>
+        </button>
+        <button id="touchRight" class="touch-btn steer" aria-label="Steer Right">
+          <span class="touch-icon">▶</span>
+          <span class="touch-label">RIGHT</span>
+        </button>
       </div>
 
-      <!-- Right Hand: Speed Control (Auto-Cruise Active) -->
-      <div class="touch-cluster">
-        <button id="touchBrake" class="touch-btn brake" aria-label="Slow Down">SLOW</button>
-        <button id="touchGas" class="touch-btn gas" aria-label="Boost Speed">BOOST</button>
+      <!-- Right Hand: Speed Control Cluster (Auto-Cruise Active) -->
+      <div class="touch-cluster touch-cluster-right">
+        <button id="touchBrake" class="touch-btn brake" aria-label="Slow Down">
+          <span class="touch-icon">▼</span>
+          <span class="touch-label">SLOW</span>
+        </button>
+        <button id="touchGas" class="touch-btn gas" aria-label="Boost Speed">
+          <span class="touch-icon">▲</span>
+          <span class="touch-label">BOOST</span>
+        </button>
       </div>
     </div>
 
