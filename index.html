@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Neon Highway - Endless Motorcycle Arcade Racer</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏍️</text></svg>">
+</head>
+<body>
+  <div id="game-container">
+    <!-- Main 60FPS High-DPI WebGL Canvas -->
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- Heads-Up Display (HUD) (Active during Gameplay) -->
+    <div id="hud" class="hidden">
+      <!-- Left: Speedometer & Profile -->
+      <div class="hud-left">
+        <div class="hud-panel">
+          <div class="hud-label">Velocity</div>
+          <div class="hud-value"><span id="hudSpeed">0</span> <small style="font-size: 13px; color: #ff00aa;">KM/H</small></div>
+        </div>
+        <div class="hud-rider-tag">
+          <span class="rider-icon">👤</span>
+          <span id="hudUsername">CYBER_RIDER</span>
+        </div>
+      </div>
+
+      <!-- Center: Score, Combo, & Level Mode Bar -->
+      <div class="hud-center">
+        <div class="hud-panel" style="text-align: center;">
+          <div class="hud-label">Score</div>
+          <div id="hudScore" class="hud-value">0</div>
+        </div>
+        <div id="hudCombo" class="combo-banner">NEAR MISS x1!</div>
+
+        <!-- Level Mode Objectives (Active during Level Mode) -->
+        <div id="hudLevelBar" class="hud-level-bar hidden">
+          <div class="hud-level-chip">
+            <span class="hud-level-lbl">TIMER</span>
+            <span id="hudLevelTimer" class="hud-level-val timer-pulse">60.0s</span>
+          </div>
+          <div class="hud-level-chip">
+            <span class="hud-level-lbl">DEST</span>
+            <span id="hudLevelDist" class="hud-level-val">1500m</span>
+          </div>
+          <div class="hud-level-chip">
+            <span class="hud-level-lbl">OVERTAKES</span>
+            <span id="hudLevelOvertakes" class="hud-level-val">0/8</span>
+          </div>
+          <div class="hud-level-chip">
+            <span class="hud-level-lbl">COINS</span>
+            <span id="hudLevelCoins" class="hud-level-val">0/15</span>
+          </div>
+        </div>
+        <div id="checkpointToast" class="checkpoint-toast hidden">+15s CHECKPOINT!</div>
+      </div>
+
+      <!-- Right: Record & Controls -->
+      <div class="hud-top-right">
+        <div class="hud-panel" style="text-align: right;">
+          <div class="hud-label">Record</div>
+          <div id="hudBest" class="hud-value" style="color: #ffea00;">0</div>
+        </div>
+        <button id="muteBtn" class="hud-btn" title="Toggle Sound (M)" aria-label="Toggle Sound">🔊</button>
+        <button id="hudSettingsBtn" class="hud-btn" title="Settings" aria-label="Settings">⚙️</button>
+        <button id="hudPauseBtn" class="hud-btn" title="Pause Game (P / Esc)" aria-label="Pause Game">⏸</button>
+      </div>
+    </div>
+
+    <!-- On-Screen Touch Controls (Mobile Friendly during run) -->
+    <div id="touch-controls" class="hidden">
+      <div id="touchSwipeZone" class="touch-swipe-zone"></div>
+      <!-- Left Hand: Steering -->
+      <div class="touch-cluster">
+        <button id="touchLeft" class="touch-btn" aria-label="Steer Left">◀</button>
+        <button id="touchRight" class="touch-btn" aria-label="Steer Right">▶</button>
+      </div>
+
+      <!-- Right Hand: Speed Control (Auto-Cruise Active) -->
+      <div class="touch-cluster">
+        <button id="touchBrake" class="touch-btn brake" aria-label="Slow Down">SLOW</button>
+        <button id="touchGas" class="touch-btn gas" aria-label="Boost Speed">BOOST</button>
+      </div>
+    </div>
+
+    <!-- ==================================================================== -->
+    <!-- LOBBY SCREEN & PLAYER HUB (Race, Garage, Shop, Upgrades)              -->
+    <!-- ==================================================================== -->
+    <!-- ==================================================================== -->
+    <!-- LOBBY SCREEN & 3D SHOWROOM (Traffic Rider Style Showcase Hub)          -->
+    <!-- ==================================================================== -->
+    <div id="lobbyScreen" class="modal-overlay showroom-mode">
+      <div class="lobby-card showroom-layout">
+        <!-- Floating Top Bar: Logo, Pilot Callsign & Apex Credits -->
+        <header class="lobby-header showroom-header">
+          <div class="lobby-branding">
+            <h1 class="title-glitch" style="font-size: 24px; margin: 0;">NEON HIGHWAY</h1>
+            <span class="lobby-subtitle">APEX ARCADE RACING</span>
+          </div>
+
+          <div class="player-profile-badge">
+            <!-- Apex Currency Balance Badge -->
+            <div class="currency-badge" title="Apex Credits">
+              <span class="currency-icon">₳</span>
+              <span id="lobbyCurrency" class="currency-amount">1,000</span>
+            </div>
+            <div class="profile-input-wrapper">
+              <span class="profile-label">PILOT:</span>
+              <input type="text" id="lobbyUsername" class="username-input" maxlength="14" spellcheck="false" value="CYBER_RIDER" title="Click to edit username">
+            </div>
+            <div class="profile-best-box">
+              <span class="best-title">RECORD</span>
+              <span id="lobbyHighScore" class="best-score">0</span>
+            </div>
+          </div>
+        </header>
+
+        <!-- Prominent 3D Vehicle & Character Showroom Stage (Dominates upper view) -->
+        <div class="lobby-turntable-container showroom-hero">
+          <div class="turntable-stage showroom-stage">
+            <canvas id="turntableCanvas"></canvas>
+            <div id="turntableDragZone" class="turntable-drag-zone" title="Click & Drag to Rotate 360°">
+              <div class="drag-hint"><span>🔄 DRAG TO ROTATE 360°</span></div>
+            </div>
+            <button id="prevVehicleBtn" class="turntable-arrow prev floating-arrow" aria-label="Previous Vehicle">◀</button>
+            <button id="nextVehicleBtn" class="turntable-arrow next floating-arrow" aria-label="Next Vehicle">▶</button>
+          </div>
+
+          <!-- Floating Vehicle Name & Category Badge -->
+          <div class="turntable-info-card floating-vehicle-card">
+            <div class="vehicle-title-row">
+              <span id="lobbyVehicleCategory" class="vehicle-type-tag">STREETFIGHTER</span>
+              <h2 id="lobbyVehicleName" class="vehicle-heading">Cyber Pulse</h2>
+              <span id="lobbyOwnershipBadge" class="ownership-badge owned">OWNED</span>
+            </div>
+            <p id="lobbyVehicleDesc" class="vehicle-desc">
+              Agile cyber streetfighter with ultra-responsive leaning and balanced speed.
+            </p>
+
+            <!-- Floating Stats Compact Bars -->
+            <div class="vehicle-stats-list compact-stats">
+              <div class="stat-bar-row">
+                <span class="stat-bar-label">TOP SPEED</span>
+                <div class="stat-progress-track">
+                  <div id="statSpeedBar" class="stat-progress-fill" style="width: 85%;"></div>
+                </div>
+                <span id="statSpeedVal" class="stat-num-val">235 KM/H</span>
+              </div>
+              <div class="stat-bar-row">
+                <span class="stat-bar-label">ACCELERATION</span>
+                <div class="stat-progress-track">
+                  <div id="statAccelBar" class="stat-progress-fill" style="width: 85%;"></div>
+                </div>
+                <span id="statAccelVal" class="stat-num-val">85%</span>
+              </div>
+              <div class="stat-bar-row">
+                <span class="stat-bar-label">HANDLING</span>
+                <div class="stat-progress-track">
+                  <div id="statHandlingBar" class="stat-progress-fill" style="width: 90%;"></div>
+                </div>
+                <span id="statHandlingVal" class="stat-num-val">90%</span>
+              </div>
+            </div>
+
+            <!-- Floating Turntable Unlock / Buy Button (Appears if viewed vehicle is locked) -->
+            <button id="turntableBuyBtn" class="turntable-buy-btn hidden">UNLOCK FOR ₳ 1,500</button>
+          </div>
+        </div>
+
+        <!-- Docked Bottom Drawer: Controls, Navigation, and Panes (Never covers the motorcycle) -->
+        <div class="lobby-bottom-drawer">
+          <!-- Primary Navigation Tabs -->
+          <nav class="lobby-nav-tabs showroom-tabs">
+            <button class="lobby-tab-btn active" data-tab="play">⚡ RACE</button>
+            <button class="lobby-tab-btn" data-tab="garage">🏍️ GARAGE</button>
+            <button class="lobby-tab-btn" data-tab="shop">🛒 SHOP</button>
+            <button class="lobby-tab-btn" data-tab="upgrades">🔧 UPGRADES</button>
+          </nav>
+
+          <!-- TAB CONTENT 1: RACE / PLAY -->
+          <div id="tabContentPlay" class="tab-pane active showroom-tab-pane">
+            <!-- Game Mode Toggle Bar: Levels vs Endless -->
+            <div class="mode-toggle-bar">
+              <button id="modeLevelsBtn" class="mode-btn active" data-mode="levels">🎯 LEVEL MODE (50 STAGES)</button>
+              <button id="modeEndlessBtn" class="mode-btn" data-mode="endless">♾️ ENDLESS HIGHWAY</button>
+            </div>
+
+            <!-- Level Mode Stage Grid -->
+            <div id="levelsSelectionView" class="levels-view">
+              <div class="levels-grid" id="levelsGrid">
+                <!-- Dynamically rendered 10 stage cards -->
+              </div>
+            </div>
+
+            <!-- Endless Mode Options Grid (Highway, Time, Density) -->
+            <div id="endlessOptionsView" class="lobby-options-grid hidden">
+              <!-- 1. Map Selection (Metropolis City default) -->
+              <div class="option-column">
+                <label class="option-title">SELECT HIGHWAY</label>
+                <div class="option-pills-group" id="mapSelector">
+                  <button class="opt-pill active" data-map="city">Metropolis</button>
+                  <button class="opt-pill" data-map="desert">Mojave Canyon</button>
+                  <button class="opt-pill" data-map="mountains">Alpine Ridge</button>
+                  <button class="opt-pill" data-map="neon">Neon Grid</button>
+                </div>
+              </div>
+
+              <!-- 2. Time of Day Selection (Midday Daytime default) -->
+              <div class="option-column">
+                <label class="option-title">ATMOSPHERE TIME</label>
+                <div class="option-pills-group" id="timeSelector">
+                  <button class="opt-pill active" data-time="midday">Midday (Daylight)</button>
+                  <button class="opt-pill" data-time="morning">Morning</button>
+                  <button class="opt-pill" data-time="sunset">Sunset</button>
+                  <button class="opt-pill" data-time="night">Night</button>
+                </div>
+              </div>
+
+              <!-- 3. Traffic Density Selection -->
+              <div class="option-column">
+                <label class="option-title">TRAFFIC DENSITY</label>
+                <div class="option-pills-group" id="densitySelector">
+                  <button class="opt-pill" data-density="low">Low</button>
+                  <button class="opt-pill active" data-density="normal">Normal</button>
+                  <button class="opt-pill" data-density="high">High (Rush)</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Bottom Action Controls -->
+            <div class="lobby-action-row">
+              <button id="lobbySettingsBtn" class="arcade-btn secondary-btn" style="flex: 0 0 auto;">⚙️ SETTINGS</button>
+              <button id="lobbyStartBtn" class="arcade-btn start-race-btn">START RIDE ⚡</button>
+            </div>
+          </div>
+
+          <!-- TAB CONTENT 2: GARAGE & CUSTOMIZATION -->
+          <div id="tabContentGarage" class="tab-pane hidden showroom-tab-pane">
+            <div class="garage-panel">
+              <div class="panel-header-row">
+                <span class="panel-section-title">YOUR OWNED VEHICLES</span>
+              </div>
+              <div class="vehicle-pills-row" id="garagePillsContainer">
+                <!-- Populated with owned vehicles -->
+              </div>
+
+              <div class="panel-header-row" style="margin-top: 10px;">
+                <span class="panel-section-title">CUSTOM PAINT FINISH</span>
+                <span class="panel-hint">Select a color to coat primary chassis panels</span>
+              </div>
+              <div class="paint-chips-row" id="paintChipsContainer">
+                <!-- Color chips -->
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB CONTENT 3: VEHICLE SHOP -->
+          <div id="tabContentShop" class="tab-pane hidden showroom-tab-pane">
+            <div class="shop-panel">
+              <div class="shop-grid" id="shopCatalogGrid">
+                <!-- Populated dynamically with 10 vehicles -->
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB CONTENT 4: UPGRADES -->
+          <div id="tabContentUpgrades" class="tab-pane hidden showroom-tab-pane">
+            <div class="upgrades-panel">
+              <div class="upgrades-vehicle-banner">
+                TUNING WORKSHOP: <span id="upgradeVehicleName" style="color: #00f0ff;">CYBER PULSE</span>
+              </div>
+              <div class="upgrades-grid" id="upgradesGrid">
+                <!-- Top Speed, Acceleration, Handling upgrade cards -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================================================================== -->
+    <!-- PAUSE SCREEN MODAL                                                   -->
+    <!-- ==================================================================== -->
+    <div id="pauseScreen" class="modal-overlay hidden">
+      <div class="modal-content">
+        <h2 class="title-glitch" style="font-size: 32px;">GAME PAUSED</h2>
+        <p class="tagline" style="margin-bottom: 24px;">HIGHWAY SIMULATION SUSPENDED</p>
+
+        <button id="resumeBtn" class="arcade-btn">RESUME RUN</button>
+        <button id="restartBtn" class="arcade-btn secondary-btn">RESTART RUN</button>
+        <button id="pauseSettingsBtn" class="arcade-btn secondary-btn">SETTINGS</button>
+        <button id="returnLobbyBtn" class="arcade-btn exit-btn">RETURN TO LOBBY</button>
+      </div>
+    </div>
+
+    <!-- Return to Lobby Confirmation Prompt -->
+    <div id="confirmLobbyModal" class="modal-overlay hidden" style="z-index: 100;">
+      <div class="modal-content" style="max-width: 440px;">
+        <h3 class="title-glitch" style="font-size: 24px; color: #ffaa00;">RETURN TO LOBBY?</h3>
+        <p style="color: #ccc; margin: 16px 0 24px;">
+          Current run progress and points will be discarded. Are you sure?
+        </p>
+        <div style="display: flex; gap: 12px; justify-content: center;">
+          <button id="confirmLobbyNo" class="arcade-btn secondary-btn" style="min-width: 130px;">CANCEL</button>
+          <button id="confirmLobbyYes" class="arcade-btn exit-btn" style="min-width: 130px;">CONFIRM</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================================================================== -->
+    <!-- SETTINGS MODAL (Full Audio, Sensitivity, Graphics & Shake)           -->
+    <!-- ==================================================================== -->
+    <div id="settingsModal" class="modal-overlay hidden">
+      <div class="modal-content" style="max-width: 520px;">
+        <h2 class="title-glitch" style="font-size: 28px;">SETTINGS</h2>
+        <p class="tagline" style="margin-bottom: 18px;">AUDIO & GAMEPLAY CONFIGURATION</p>
+
+        <!-- Audio Volume Sliders -->
+        <div class="settings-group">
+          <div class="slider-row">
+            <label for="settingMasterVolume" class="settings-label">Master Volume</label>
+            <span id="valMasterVolume" class="slider-val">80%</span>
+          </div>
+          <input type="range" id="settingMasterVolume" min="0" max="100" value="80" class="neon-slider">
+        </div>
+
+        <div class="settings-group">
+          <div class="slider-row">
+            <label for="settingMusicVolume" class="settings-label">Music Synth Volume</label>
+            <span id="valMusicVolume" class="slider-val">70%</span>
+          </div>
+          <input type="range" id="settingMusicVolume" min="0" max="100" value="70" class="neon-slider">
+        </div>
+
+        <div class="settings-group">
+          <div class="slider-row">
+            <label for="settingSfxVolume" class="settings-label">SFX / Engine Volume</label>
+            <span id="valSfxVolume" class="slider-val">85%</span>
+          </div>
+          <input type="range" id="settingSfxVolume" min="0" max="100" value="85" class="neon-slider">
+        </div>
+
+        <!-- Controls: Sensitivity -->
+        <div class="settings-group">
+          <div class="slider-row">
+            <label for="settingSensitivity" class="settings-label">Steering Sensitivity</label>
+            <span id="valSensitivity" class="slider-val">100%</span>
+          </div>
+          <input type="range" id="settingSensitivity" min="50" max="150" value="100" class="neon-slider">
+        </div>
+
+        <!-- Controls: Camera Shake -->
+        <div class="settings-group toggle-row">
+          <label for="settingShake" class="settings-label">Camera Shake FX</label>
+          <input type="checkbox" id="settingShake" checked class="neon-toggle">
+        </div>
+
+        <!-- Graphics Quality -->
+        <div class="settings-group">
+          <label for="settingQuality" class="settings-label">Graphics Quality</label>
+          <select id="settingQuality" class="settings-select">
+            <option value="high">High (Dynamic Shadows, 16 Chunks, High-DPI)</option>
+            <option value="medium">Medium (Balanced Mobile/Laptop, 14 Chunks)</option>
+            <option value="low">Low (11 Chunks, No Shadows, 60 FPS Focus)</option>
+          </select>
+        </div>
+
+        <div class="settings-btn-row">
+          <button id="resetSettingsBtn" class="arcade-btn secondary-btn" style="flex: 1;">RESET DEFAULTS</button>
+          <button id="closeSettingsBtn" class="arcade-btn" style="flex: 1;">SAVE & CLOSE</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================================================================== -->
+    <!-- GAME OVER SCREEN                                                     -->
+    <!-- ==================================================================== -->
+    <div id="gameOverScreen" class="modal-overlay hidden">
+      <div class="modal-content">
+        <h2 class="title-glitch" style="font-size: 36px; color: #ff0055;">WIPEOUT</h2>
+        <div id="newBestBadge" class="new-best-badge hidden">★ NEW ALL-TIME RECORD! ★</div>
+        <p class="tagline">SYSTEM OFFLINE</p>
+
+        <div class="stats-grid">
+          <div class="stat-item">
+            <div class="stat-title">FINAL SCORE</div>
+            <div id="finalScore" class="stat-num">0</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-title">DISTANCE</div>
+            <div id="finalDistance" class="stat-num">0 m</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-title">NEAR MISSES</div>
+            <div id="finalNearMiss" class="stat-num" style="color: #ffea00;">0</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-title">BEST RECORD</div>
+            <div id="finalBest" class="stat-num" style="color: #00f0ff;">0</div>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 12px; margin-top: 18px; width: 100%;">
+          <button id="retryBtn" class="arcade-btn" style="flex: 1;">RETRY (R)</button>
+          <button id="gameOverLobbyBtn" class="arcade-btn secondary-btn" style="flex: 1;">LOBBY</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================================================================== -->
+    <!-- LEVEL COMPLETE MODAL                                                 -->
+    <!-- ==================================================================== -->
+    <div id="levelCompleteModal" class="modal-overlay hidden">
+      <div class="modal-content victory-content">
+        <h2 class="title-glitch" style="font-size: 32px; color: #ffea00;">STAGE CLEARED! 🏆</h2>
+        <p id="completeLevelTitle" class="tagline" style="color: #00f0ff; margin-bottom: 16px;">STAGE 1: CYBER METRO</p>
+
+        <div class="rewards-summary-box">
+          <div class="reward-row">
+            <span>Base Stage Bounty</span>
+            <span id="rewardBase" class="reward-val">+₳ 500</span>
+          </div>
+          <div class="reward-row">
+            <span>Coins Collected</span>
+            <span id="rewardCoins" class="reward-val">+₳ 150</span>
+          </div>
+          <div class="reward-row">
+            <span>Time Bonus</span>
+            <span id="rewardTime" class="reward-val">+₳ 80</span>
+          </div>
+          <div class="reward-divider"></div>
+          <div class="reward-row total-row">
+            <span>TOTAL EARNINGS</span>
+            <span id="rewardTotal" class="reward-val total-val">+₳ 730</span>
+          </div>
+        </div>
+
+        <div class="currency-balance-pill">
+          <span>WALLET BALANCE:</span>
+          <span class="currency-icon">₳</span>
+          <span id="modalCurrencyBalance">1,730</span>
+        </div>
+
+        <div style="display: flex; gap: 12px; margin-top: 18px; width: 100%;">
+          <button id="levelNextBtn" class="arcade-btn" style="flex: 1.3;">NEXT LEVEL ⏩</button>
+          <button id="levelReplayBtn" class="arcade-btn secondary-btn" style="flex: 1;">REPLAY 🔄</button>
+          <button id="levelLobbyBtn" class="arcade-btn exit-btn" style="flex: 1;">LOBBY 🏠</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================================================================== -->
+    <!-- LEVEL FAILED MODAL                                                   -->
+    <!-- ==================================================================== -->
+    <div id="levelFailedModal" class="modal-overlay hidden">
+      <div class="modal-content">
+        <h2 class="title-glitch" style="font-size: 32px; color: #ff0055;">STAGE FAILED ⚠️</h2>
+        <p id="failedReasonText" class="tagline" style="color: #ffaaee; margin-bottom: 18px;">TIME EXPIRED BEFORE FINISH</p>
+
+        <div class="stats-grid">
+          <div class="stat-item">
+            <div class="stat-title">DISTANCE REACHED</div>
+            <div id="failDistance" class="stat-num">0 m</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-title">COINS COLLECTED</div>
+            <div id="failCoins" class="stat-num" style="color: #ffea00;">0</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-title">OVERTAKES</div>
+            <div id="failOvertakes" class="stat-num" style="color: #00f0ff;">0</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-title">TIME REMAINING</div>
+            <div id="failTime" class="stat-num" style="color: #ff3366;">0.0s</div>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 12px; margin-top: 20px; width: 100%;">
+          <button id="failRetryBtn" class="arcade-btn" style="flex: 1;">RETRY STAGE 🔄</button>
+          <button id="failLobbyBtn" class="arcade-btn secondary-btn" style="flex: 1;">LOBBY 🏠</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================================================================== -->
+    <!-- VEHICLE PURCHASE / UNLOCK MODAL                                      -->
+    <!-- ==================================================================== -->
+    <div id="purchaseModal" class="modal-overlay hidden" style="z-index: 100;">
+      <div class="modal-content" style="max-width: 460px;">
+        <h2 class="title-glitch" style="font-size: 26px; color: #ffcc00;">ACQUIRE VEHICLE</h2>
+        <p id="purchaseVehicleType" class="tagline" style="margin-bottom: 12px;">TRACK HYPERBIKE</p>
+        
+        <h3 id="purchaseVehicleName" style="font-family: 'Orbitron', monospace; font-size: 22px; color: #00f0ff; margin-bottom: 6px;">Shadow Ninja</h3>
+        <p id="purchaseVehicleDesc" style="font-size: 12px; color: #bbb; margin-bottom: 12px;">High-speed performance vehicle.</p>
+
+        <div class="purchase-price-box">
+          <div class="purchase-row">
+            <span>VEHICLE PRICE:</span>
+            <span class="purchase-val"><span style="color: #ffaa00;">₳</span> <span id="purchasePriceVal">5,500</span></span>
+          </div>
+          <div class="purchase-row">
+            <span>YOUR BALANCE:</span>
+            <span class="purchase-val"><span style="color: #ffaa00;">₳</span> <span id="purchaseBalanceVal">1,000</span></span>
+          </div>
+          <div id="purchaseErrorMsg" class="insufficient-msg hidden">
+            ⚠️ INSUFFICIENT FUNDS! Complete runs to earn more Apex Credits.
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 12px; width: 100%;">
+          <button id="cancelPurchaseBtn" class="arcade-btn secondary-btn" style="flex: 1;">CANCEL</button>
+          <button id="confirmPurchaseBtn" class="arcade-btn" style="flex: 1; background: linear-gradient(90deg, #ffcc00, #ff8800); border-color: #ffea00; color: #060114;">PURCHASE ⚡</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Three.js 3D WebGL Library -->
+  <script src="lib/three.min.js"></script>
+  <!-- Procedural 3D Models & Textures -->
+  <script src="models.js"></script>
+  <!-- 3D Scene, Lighting & Modular Road Chunks -->
+  <script src="world3d.js"></script>
+  <!-- Synthesizer Audio Engine -->
+  <script src="audio.js"></script>
+  <!-- 3D Traffic Simulation & AI -->
+  <script src="traffic.js"></script>
+  <!-- Progression & Currency Engine -->
+  <script src="progression.js"></script>
+  <!-- 10-Stage Level Engine -->
+  <script src="levelEngine.js"></script>
+  <!-- Main 3D Game Coordinator -->
+  <script src="game.js"></script>
+</body>
+</html>
