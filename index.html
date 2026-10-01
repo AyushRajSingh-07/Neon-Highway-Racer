@@ -62,6 +62,7 @@
           <div class="hud-label">Record</div>
           <div id="hudBest" class="hud-value" style="color: #ffea00;">0</div>
         </div>
+        <button id="hudFullscreenBtn" class="hud-btn fullscreen-toggle-btn" title="Toggle Fullscreen (F)" aria-label="Toggle Fullscreen">⛶</button>
         <button id="muteBtn" class="hud-btn" title="Toggle Sound (M)" aria-label="Toggle Sound">🔊</button>
         <button id="hudSettingsBtn" class="hud-btn" title="Settings" aria-label="Settings">⚙️</button>
         <button id="hudPauseBtn" class="hud-btn" title="Pause Game (P / Esc)" aria-label="Pause Game">⏸</button>
@@ -83,6 +84,30 @@
         <button id="touchGas" class="touch-btn gas" aria-label="Boost Speed">BOOST</button>
       </div>
     </div>
+
+    <!-- Portrait Orientation Guidance Overlay (Shows when in portrait mode) -->
+    <div id="portraitOrientationOverlay" class="portrait-overlay hidden">
+      <div class="portrait-overlay-card">
+        <div class="rotate-phone-anim">
+          <div class="phone-device-icon">
+            <div class="phone-screen-notch"></div>
+            <div class="phone-screen-content">🏍️</div>
+          </div>
+          <div class="rotation-arrow">⟲</div>
+        </div>
+        <h2 class="rotate-title">ROTATE YOUR DEVICE</h2>
+        <p class="rotate-desc">
+          Neon Highway is optimized for <strong style="color: #00f0ff;">Landscape Orientation</strong>. Rotate your phone sideways for wide-track vision and responsive dual-thumb controls.
+        </p>
+        <div class="rotate-actions">
+          <button id="requestRotateFullscreenBtn" class="arcade-btn rotate-fs-btn">FULLSCREEN &amp; LANDSCAPE ⛶</button>
+          <button id="dismissRotateOverlayBtn" class="arcade-btn secondary-btn rotate-dismiss-btn">CONTINUE IN PORTRAIT</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Fallback / Unobtrusive Toast Message -->
+    <div id="toastNotification" class="toast-notification hidden"></div>
 
     <!-- ==================================================================== -->
     <!-- LOBBY SCREEN & PLAYER HUB (Race, Garage, Shop, Upgrades)              -->
@@ -113,6 +138,11 @@
               <span class="best-title">RECORD</span>
               <span id="lobbyHighScore" class="best-score">0</span>
             </div>
+            <!-- Clearly visible Fullscreen button before fullscreen begins -->
+            <button id="lobbyFullscreenBtn" class="lobby-fs-btn fullscreen-toggle-btn" title="Toggle Fullscreen (F)" aria-label="Toggle Fullscreen">
+              <span class="fs-icon">⛶</span>
+              <span class="fs-label">FULLSCREEN</span>
+            </button>
           </div>
         </header>
 

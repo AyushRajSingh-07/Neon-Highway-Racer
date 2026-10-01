@@ -221,8 +221,16 @@ class NeonHighwayGame3D {
       purchaseBalanceVal: document.getElementById('purchaseBalanceVal'),
       purchaseErrorMsg: document.getElementById('purchaseErrorMsg'),
       confirmPurchaseBtn: document.getElementById('confirmPurchaseBtn'),
-      cancelPurchaseBtn: document.getElementById('cancelPurchaseBtn')
+      cancelPurchaseBtn: document.getElementById('cancelPurchaseBtn'),
+      lobbyFullscreenBtn: document.getElementById('lobbyFullscreenBtn'),
+      hudFullscreenBtn: document.getElementById('hudFullscreenBtn'),
+      portraitOrientationOverlay: document.getElementById('portraitOrientationOverlay'),
+      requestRotateFullscreenBtn: document.getElementById('requestRotateFullscreenBtn'),
+      dismissRotateOverlayBtn: document.getElementById('dismissRotateOverlayBtn'),
+      toastNotification: document.getElementById('toastNotification')
     };
+
+    this.portraitDismissed = false;
 
     this.init();
   }
@@ -253,8 +261,38 @@ class NeonHighwayGame3D {
     this.switchTab(this.currentTab);
     this.refreshLobbyDisplay();
 
-    // Window resize
-    window.addEventListener('resize', () => this.handleResize());
+    // Window resize & orientation check
+    window.addEventListener('resize', () => {
+      this.handleResize();
+      this.checkOrientationState();
+    });
+
+    // Orientation change handling across mobile browsers
+    window.addEventListener('orientationchange', () => {
+      setTimeout(() => {
+        this.handleResize();
+        this.checkOrientationState();
+      }, 150);
+    });
+
+    if (window.screen && window.screen.orientation) {
+      window.screen.orientation.addEventListener('change', () => {
+        setTimeout(() => {
+          this.handleResize();
+          this.checkOrientationState();
+        }, 150);
+      });
+    }
+
+    // Fullscreen change events across browsers
+    const onFsChange = () => this.handleFullscreenChange();
+    document.addEventListener('fullscreenchange', onFsChange);
+    document.addEventListener('webkitfullscreenchange', onFsChange);
+    document.addEventListener('mozfullscreenchange', onFsChange);
+    document.addEventListener('MSFullscreenChange', onFsChange);
+
+    // Initial orientation check
+    this.checkOrientationState();
 
     // Tab visibility handling (pause safely if running)
     document.addEventListener('visibilitychange', () => {
@@ -919,6 +957,10 @@ class NeonHighwayGame3D {
         this.toggleMute();
       }
 
+      if (e.code === 'KeyF') {
+        this.toggleFullscreen();
+      }
+
       if (e.code === 'KeyR' && this.state === this.STATE_GAMEOVER) {
         this.startRun();
       }
@@ -1130,6 +1172,29 @@ class NeonHighwayGame3D {
     // 11. Retry Button
     if (this.ui.retryBtn) this.ui.retryBtn.addEventListener('click', () => this.startRun());
 
+    // 12. Fullscreen Toggle Buttons
+    if (this.ui.lobbyFullscreenBtn) {
+      this.ui.lobbyFullscreenBtn.addEventListener('click', () => this.toggleFullscreen());
+    }
+    if (this.ui.hudFullscreenBtn) {
+      this.ui.hudFullscreenBtn.addEventListener('click', () => this.toggleFullscreen());
+    }
+
+    // 13. Portrait Orientation Guidance Overlay Buttons
+    if (this.ui.requestRotateFullscreenBtn) {
+      this.ui.requestRotateFullscreenBtn.addEventListener('click', () => {
+        this.enterFullscreen();
+      });
+    }
+    if (this.ui.dismissRotateOverlayBtn) {
+      this.ui.dismissRotateOverlayBtn.addEventListener('click', () => {
+        this.portraitDismissed = true;
+        if (this.ui.portraitOrientationOverlay) {
+          this.ui.portraitOrientationOverlay.classList.add('hidden');
+        }
+      });
+    }
+
     // Navigation Tabs (Race, Garage, Shop, Upgrades)
     const tabBtns = document.querySelectorAll('.lobby-tab-btn');
     tabBtns.forEach(btn => {
@@ -1333,6 +1398,9 @@ class NeonHighwayGame3D {
     }
 
     this.audio.init();
+
+    // Request landscape orientation upon user gesture to start race
+    this.requestLandscapeOrientation();
 
     // Reset Player State
     this.playerX = 0;
@@ -1995,8 +2063,129 @@ class NeonHighwayGame3D {
     }, 1800);
   }
 
+  // ==========================================================================
+  // FULLSCREEN & MOBILE ORIENTATION COORDINATION
+  // ==========================================================================
+  isFullscreen() {
+    return !!(
+      document.fullscreenElement ||
+      document.webkitFullscreenElement ||
+      document.mozFullScreenElement ||
+      document.msFullscreenElement
+    );
+  }
+
+  async enterFullscreen() {
+    const el = document.documentElement;
+    try {
+      if (el.requestFullscreen) {
+        await el.requestFullscreen();
+      } else if (el.webkitRequestFullscreen) {
+        await el.webkitRequestFullscreen();
+      } else if (el.mozRequestFullScreen) {
+        await el.mozRequestFullScreen();
+      } else if (el.msRequestFullscreen) {
+        await el.msRequestFullscreen();
+      } else {
+        this.showToast('Fullscreen mode is not supported by your browser');
+      }
+    } catch (err) {
+      console.warn('Fullscreen request rejected or denied:', err);
+      this.showToast('Fullscreen mode unavailable or denied');
+    }
+
+    // Automatically request landscape orientation on interaction
+    await this.requestLandscapeOrientation();
+  }
+
+  async exitFullscreen() {
+    try {
+      if (document.exitFullscreen) {
+        await document.exitFullscreen();
+      } else if (document.webkitExitFullscreen) {
+        await document.webkitExitFullscreen();
+      } else if (document.mozCancelFullScreen) {
+        await document.mozCancelFullScreen();
+      } else if (document.msExitFullscreen) {
+        await document.msExitFullscreen();
+      }
+    } catch (err) {
+      console.warn('Exit fullscreen error:', err);
+    }
+  }
+
+  toggleFullscreen() {
+    if (this.isFullscreen()) {
+      this.exitFullscreen();
+    } else {
+      this.enterFullscreen();
+    }
+  }
+
+  handleFullscreenChange() {
+    const active = this.isFullscreen();
+    document.body.classList.toggle('fullscreen-active', active);
+
+    // After exiting fullscreen or changing state, restore normal page layout and update orientation guidance
+    this.handleResize();
+    this.checkOrientationState();
+  }
+
+  async requestLandscapeOrientation() {
+    try {
+      if (screen.orientation && typeof screen.orientation.lock === 'function') {
+        await screen.orientation.lock('landscape');
+        return true;
+      } else if (screen.lockOrientation) {
+        return screen.lockOrientation('landscape');
+      } else if (screen.webkitLockOrientation) {
+        return screen.webkitLockOrientation('landscape');
+      } else if (screen.mozLockOrientation) {
+        return screen.mozLockOrientation('landscape');
+      } else if (screen.msLockOrientation) {
+        return screen.msLockOrientation('landscape');
+      }
+    } catch (err) {
+      // Browsers like iOS Safari or unpermitted iframes throw or reject orientation locking.
+      // This is expected and handled gracefully:
+      console.info('Orientation lock could not be applied automatically:', err.message || err);
+      return false;
+    }
+    return false;
+  }
+
+  checkOrientationState() {
+    const isPortrait = window.innerHeight > window.innerWidth;
+    if (!this.ui.portraitOrientationOverlay) return;
+
+    if (!isPortrait) {
+      // In landscape: automatically hide portrait overlay and reset user dismissal
+      this.ui.portraitOrientationOverlay.classList.add('hidden');
+      this.portraitDismissed = false;
+    } else {
+      // In portrait: show overlay unless dismissed by user
+      if (!this.portraitDismissed) {
+        this.ui.portraitOrientationOverlay.classList.remove('hidden');
+      } else {
+        this.ui.portraitOrientationOverlay.classList.add('hidden');
+      }
+    }
+  }
+
+  showToast(message, duration = 2800) {
+    if (!this.ui.toastNotification) return;
+    this.ui.toastNotification.textContent = message;
+    this.ui.toastNotification.classList.remove('hidden');
+    if (this.toastTimeoutNotice) clearTimeout(this.toastTimeoutNotice);
+    this.toastTimeoutNotice = setTimeout(() => {
+      if (this.ui.toastNotification) this.ui.toastNotification.classList.add('hidden');
+    }, duration);
+  }
+
   handleResize() {
-    this.world.onResize(this.container.clientWidth, this.container.clientHeight);
+    const w = this.container.clientWidth || window.innerWidth;
+    const h = this.container.clientHeight || window.innerHeight;
+    this.world.onResize(w, h);
     if (this.ui.turntableCanvas && this.turntableRenderer && this.turntableCamera) {
       const rect = this.ui.turntableCanvas.getBoundingClientRect();
       if (rect.width > 0 && rect.height > 0) {
